@@ -46,8 +46,8 @@ The steps I added in Power Query are in the [`power-query`](power-query) folder,
 - Renamed `Room Charges(daily rate)` to **Room Daily Rate** for a cleaner field name.
 - Replaced `N/A` in **Room Type** with **Not Admitted**, so visits without a hospital stay have a clear label.
 
-**_Measures_data_values** ([`measures-table.m`](power-query/measures-table.m))
-- Created an empty table and removed its placeholder column, so it can hold all DAX measures in one place.
+**_Measures_data_values**
+- Created an empty table to hold all DAX measures in one place.
 
 **departments, diagnoses, insurance, procedures, providers**
 - Loaded without any manual changes.
