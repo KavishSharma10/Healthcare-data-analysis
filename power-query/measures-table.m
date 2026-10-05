@@ -1,8 +1,0 @@
-let
-    // Created an empty table
-    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Column1 = _t]),
-
-    // Removed placeholder column
-    #"Removed Columns" = Table.RemoveColumns(Source, {"Column1"})
-in
-    #"Removed Columns"
