@@ -1,0 +1,12 @@
+// Created a date table from Jan 2024 to May 2025
+Date =
+ADDCOLUMNS(
+    CALENDAR(DATE(2024,1,1), DATE(2025,5,31)),
+    "Year", YEAR([Date]),
+    "Month No", MONTH([Date]),
+    "Month", FORMAT([Date], "mmm"),
+    "Year-Month", FORMAT([Date], "yyyy-mm"),
+    "Quarter", "Q" & QUARTER([Date]),
+    "Weekday", FORMAT([Date], "ddd"),
+    "Weekday No", WEEKDAY([Date], 2)
+)

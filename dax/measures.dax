@@ -1,0 +1,29 @@
+// Number of admitted visits (used in Admission Rate)
+Admissions = CALCULATE([Total Visits], visits[Is Admitted] = "Admitted")
+
+// Share of billing covered by insurance
+Coverage % = DIVIDE([Insurance Covered], [Total Billed])
+
+// Amount paid by patients
+Out of Pocket = [Total Billed] - [Insurance Covered]
+
+// Billing still unpaid
+Pending Amount = CALCULATE([Total Billed], visits[Payment Status] = "Pending")
+
+// Share of billing still unpaid
+Pending $ % = DIVIDE([Pending Amount], [Total Billed])
+
+// Share of visits that were admitted
+Admission Rate = DIVIDE([Admissions], [Total Visits])
+
+// Number of emergency visits
+Emergency Visits = CALCULATE([Total Visits], visits[Emergency Visit] = "Yes")
+
+// Share of visits that were emergencies
+Emergency % = DIVIDE([Emergency Visits], [Total Visits])
+
+// Average days in hospital
+Avg Length of Stay = AVERAGE(visits[Length of Stay])
+
+// Average patient satisfaction score
+Avg Satisfaction = AVERAGE(visits[Patient Satisfaction Score])
