@@ -175,7 +175,7 @@ Power BI Desktop · Power Query (M) · DAX
 
 ## How to open
 1. Download [Healthcare_Data_Analysis.pbix](Healthcare_Data_Analysis.pbix).
-2. Open it in [Power BI Desktop](https://www.microsoft.com/power-bi/desktop).
+2. Open it in Power BI Desktop.
 3. Use the buttons on the left to move between pages and the slicers to filter.
 
 ## Author
