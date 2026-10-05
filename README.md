@@ -34,16 +34,23 @@ Each page has the same left panel with slicers and navigation buttons (OverView,
 
 ## Data preparation (Power Query)
 
-Full steps are in [`power-query/transformations.m`](power-query/transformations.m).
+The steps I added in Power Query are in the [`power-query`](power-query) folder, one file per table. Power BI's automatic load steps (Source, Promoted headers, Changed column type) are not included.
 
-**patients**
-- Set column data types.
+**patients** ([`patients.m`](power-query/patients.m))
 - Added an **Age Group** column that bands patients into 18–29, 30–44, 45–59 and 60+, so age can be used as a category.
 - Merged with the **cities** table on `City ID` (left outer join) and expanded the **City** column, so each patient has a readable city name instead of an ID.
 
-**visits**
-- Converted **Date of Visit**, **Follow-Up Visit Date**, **Discharge Date** and **Admitted Date** to the Date type using the en-US locale, so the dates are read in the right format and can link to the Date table.
+**visits** ([`visits.m`](power-query/visits.m))
+- Converted **Date of Visit** and **Follow-Up Visit Date** to the Date type using the en-US locale.
+- Converted **Discharge Date** and **Admitted Date** from text to the Date type.
 - Renamed `Room Charges(daily rate)` to **Room Daily Rate** for a cleaner field name.
+- Replaced `N/A` in **Room Type** with **Not Admitted**, so visits without a hospital stay have a clear label.
+
+**_Measures_data_values** ([`measures-table.m`](power-query/measures-table.m))
+- Created an empty table and removed its placeholder column, so it can hold all DAX measures in one place.
+
+**departments, diagnoses, insurance, procedures, providers**
+- Loaded without any manual changes.
 
 ---
 
@@ -171,17 +178,5 @@ Power BI Desktop · Power Query (M) · DAX
 2. Open it in [Power BI Desktop](https://www.microsoft.com/power-bi/desktop) (free).
 3. Use the buttons on the left to move between pages and the slicers to filter.
 
-## Repository structure
-```
-├── Healthcare_Data_Analysis.pbix      # Power BI report
-├── dax/
-│   ├── date-table.dax                 # Calculated Date table
-│   └── measures.dax                   # DAX measures used in the report
-├── power-query/
-│   └── transformations.m              # Power Query cleaning steps
-├── .gitignore
-└── README.md
-```
-
 ## Author
-**Kavish Sharma** · [LinkedIn](https://www.linkedin.com/in/kavish-sharma-29361b210/) · [GitHub](https://github.com/KavishSharma10)
+**Kavish Sharma**
