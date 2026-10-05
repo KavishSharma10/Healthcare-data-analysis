@@ -174,8 +174,8 @@ Pending Amount is also a base for Pending $ %, and Emergency Visits is a base fo
 Power BI Desktop · Power Query (M) · DAX
 
 ## How to open
-1. Download `Healthcare_Data_Analysis.pbix`.
-2. Open it in [Power BI Desktop](https://www.microsoft.com/power-bi/desktop) (free).
+1. Download [Healthcare_Data_Analysis.pbix](Healthcare_Data_Analysis.pbix).
+2. Open it in [Power BI Desktop](https://www.microsoft.com/power-bi/desktop).
 3. Use the buttons on the left to move between pages and the slicers to filter.
 
 ## Author
