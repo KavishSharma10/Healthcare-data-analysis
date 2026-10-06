@@ -66,7 +66,6 @@ The full steps are in the [`power-query`](power-query) folder.
 ### Data issues I found
 While checking the data, I found a few problems and adjusted the report for them:
 - **Missing months:** October to December 2024 are mostly missing, and those visits appear to have been dated 1–4 January 2025 instead. I excluded October 2024 to January 2025 from the monthly trend charts so they don't show a false dip and spike.
-- **Partial month:** May 2025 only has part of the month, so it's excluded from the whole report.
 - **Emergency flag:** some outpatient visits are also flagged as emergencies, so the emergency figures depend on which field you use. The Operations page uses the emergency flag.
 - **Missing coverage:** 119 visits have no insurance coverage value.
 
