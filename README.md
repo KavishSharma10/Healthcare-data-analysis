@@ -1,182 +1,104 @@
 # Hospital Performance Dashboard (Power BI)
 
-An interactive three-page Power BI report that helps hospital management answer one question: **where is money and capacity leaking, and which departments need attention first?**
+A four-page Power BI report built to help hospital management see where revenue is being lost, how much patients are paying, how busy each department is, and how satisfied patients are.
 
-It tracks patient volume, billing and collections, insurance coverage, admissions, emergency demand and patient satisfaction. Every page can be filtered by Year-Month, Department, Service Type and Insurance Provider.
+![Overview page](images/overview.png)
 
----
+## The problem
 
-## Business problem
+The hospital has billed $3.25M, but more than a third of it hasn't been paid. Patient satisfaction is also low. Management wants to know where to focus first: is the unpaid billing coming from particular departments or insurers, and which areas are letting patients down?
 
-The hospital bills well but collects slowly, and operational pressure is spread unevenly across departments. Leadership needs one view that shows:
+## Key findings
 
-1. **Revenue at risk**: how much billing is still unpaid, and in which departments and with which insurers.
-2. **Patient cost burden**: how much of each bill insurance covers and how much patients pay themselves.
-3. **Operational load**: emergency share, admission rates and length of stay by department and diagnosis, and the busiest days of the week.
-4. **Patient experience**: average satisfaction score.
+**Collections**
+- $1.26M (38.7%) of billing is unpaid, against $2.00M collected.
+- The problem is hospital-wide. Every department sits between 35% and 42% unpaid, and every insurer and service type between 38% and 40%.
+- Cardiology holds the most unpaid money ($0.35M), mainly because it bills the most.
+- Collections are unstable. Almost everything was paid in May and June 2024, but in August 2024 and March 2025 more was left unpaid than was collected.
 
----
+**Patient costs**
+- Insurance covers about 66% of each bill. Patients pay the other 34%, around $225 per visit.
+- This share is almost the same in every department and with every insurer.
 
-## Report pages
-
-### 1. Executive Overview
-KPI cards for Total Visits, Unique Patients, Total Billed, Coverage %, Unpaid Amount, % Billing Unpaid, Admission Rate and Avg Satisfaction. Below them: Total Billed vs Pending Amount by department, the monthly trend of visits and billing, and the visit mix by service type.
-
-### 2. Revenue & Collections
-Pending amount by department, total billed split into paid and pending, pending amount by insurance provider, and an out-of-pocket cost matrix (department × insurer) with heat-map shading.
-
-### 3. Operations & Capacity
-KPI cards for Emergency Visits, Emergency %, Admission Rate and Avg Length of Stay. Below them: emergency visits by month with an average line, admission rate by department, average length of stay by diagnosis, and total visits by day of the week.
-
-Each page has the same left panel with slicers and navigation buttons (OverView, Revenue, Operations).
-
----
-
-## Data preparation (Power Query)
-
-The steps I added in Power Query are in the [`power-query`](power-query) folder, one file per table. Power BI's automatic load steps (Source, Promoted headers, Changed column type) are not included.
-
-**patients** ([`patients.m`](power-query/patients.m))
-- Added an **Age Group** column that bands patients into 18–29, 30–44, 45–59 and 60+, so age can be used as a category.
-- Merged with the **cities** table on `City ID` (left outer join) and expanded the **City** column, so each patient has a readable city name instead of an ID.
-
-**visits** ([`visits.m`](power-query/visits.m))
-- Converted **Date of Visit** and **Follow-Up Visit Date** to the Date type using the en-US locale.
-- Converted **Discharge Date** and **Admitted Date** from text to the Date type.
-- Renamed `Room Charges(daily rate)` to **Room Daily Rate** for a cleaner field name.
-- Replaced `N/A` in **Room Type** with **Not Admitted**, so visits without a hospital stay have a clear label.
-
-**_Measures_data_values** ([`measures-table.m`](power-query/measures-table.m))
-- Created an empty table and removed its placeholder column, so it can hold all DAX measures in one place.
-
-**departments, diagnoses, insurance, procedures, providers**
-- Loaded without any manual changes.
-
----
-
-## Data model
-
-Star schema with `visits` as the fact table.
-
-| Table | Type | Role |
-|---|---|---|
-| `visits` | Fact | One row per visit: billing, payment status, admission, emergency flag, length of stay, satisfaction |
-| `patients` | Dimension | Patient details, Age Group, City |
-| `departments` | Dimension | Department names |
-| `diagnoses` | Dimension | Diagnosis descriptions |
-| `procedures` | Dimension | Procedures performed |
-| `providers` | Dimension | Care providers |
-| `insurance` | Dimension | Insurance providers |
-| `Date` | Dimension | Calculated calendar table (see below) |
-| `_Measures_data_values` | Measure table | Holds all DAX measures in one place |
-
-### Date table
-
-Built in DAX so the report has one continuous calendar with no missing days, even on days with no visits. It is linked to `visits[Date of Visit]`. Definition: [`dax/date-table.dax`](dax/date-table.dax).
-
-```dax
-Date =
-ADDCOLUMNS(
-    CALENDAR(DATE(2024,1,1), DATE(2025,5,31)),
-    "Year", YEAR([Date]),
-    "Month No", MONTH([Date]),
-    "Month", FORMAT([Date], "mmm"),
-    "Year-Month", FORMAT([Date], "yyyy-mm"),
-    "Quarter", "Q" & QUARTER([Date]),
-    "Weekday", FORMAT([Date], "ddd"),
-    "Weekday No", WEEKDAY([Date], 2)
-)
-```
-
-| Column | Example | Purpose |
-|---|---|---|
-| Date | 2024-03-15 | One row per day from 1 Jan 2024 to 31 May 2025 |
-| Year | 2024 | Yearly grouping |
-| Month No | 3 | Numeric month (calendar order 1–12) |
-| Month | Mar | Short month name for labels |
-| Year-Month | 2024-03 | Monthly trend axis and slicer; the yyyy-mm format sorts correctly as text |
-| Quarter | Q1 | Quarterly grouping |
-| Weekday | Fri | Short day name |
-| Weekday No | 5 | Monday = 1 to Sunday = 7 |
-| Day Name | Fri | Added column used on the day-of-week axis (Operations page); sorted by Weekday No so days show Mon to Sun instead of alphabetically |
-
-The calendar ends on 31 May 2025, and a report-level filter excludes 2025-05 from all pages.
-
----
-
-## DAX measures
-
-All measures are in the `_Measures_data_values` table. Definitions are in [`dax/measures.dax`](dax/measures.dax).
-
-### Base measures
-These are the building blocks. Admissions and Insurance Covered are not shown on any visual themselves; they are computed because other measures use their output.
-
-| Measure | Used on dashboard? | Feeds into |
-|---|---|---|
-| Total Visits | Yes (KPI card, trend, donut, day-of-week chart) | Admissions, Admission Rate, Emergency Visits, Emergency % |
-| Total Billed | Yes (KPI card, bar charts, trend, donut) | Coverage %, Out of Pocket, Pending Amount, Pending $ % |
-| Insurance Covered | No, base only | Coverage %, Out of Pocket |
-| Admissions | No, base only | Admission Rate |
-
-```dax
-Admissions = CALCULATE([Total Visits], visits[Is Admitted] = "Admitted")
-```
-
-### Measures shown on the dashboard
-
-| Measure | Shown as | Formula | Page |
-|---|---|---|---|
-| Unique Patients | Unique Patients | Distinct count of patients | Overview |
-| Coverage % | Coverage % | `DIVIDE([Insurance Covered], [Total Billed])` | Overview |
-| Pending Amount | Unpaid Amount | `CALCULATE([Total Billed], visits[Payment Status] = "Pending")` | Overview, Revenue |
-| Pending $ % | % Billing Unpaid | `DIVIDE([Pending Amount], [Total Billed])` | Overview |
-| Out of Pocket | Out-of-pocket matrix | `[Total Billed] - [Insurance Covered]` | Revenue |
-| Admission Rate | Admission Rate | `DIVIDE([Admissions], [Total Visits])` | Overview, Operations |
-| Emergency Visits | Emergency Visits | `CALCULATE([Total Visits], visits[Emergency Visit] = "Yes")` | Operations |
-| Emergency % | Emergency % | `DIVIDE([Emergency Visits], [Total Visits])` | Operations |
-| Avg Length of Stay | Avg Length of Stay | `AVERAGE(visits[Length of Stay])` | Operations |
-| Avg Satisfaction | Avg Satisfaction | `AVERAGE(visits[Patient Satisfaction Score])` | Overview |
-
-Pending Amount is also a base for Pending $ %, and Emergency Visits is a base for Emergency %. Each is computed once and reused.
-
----
-
-## Key insights
-
-**Revenue and collections**
-- The hospital billed **$3.25M**. Insurance covers **66.35%** of it.
-- **$1.26M (38.68%) is still unpaid**, so more than a third of revenue is at risk.
-- **Cardiology** has the most unpaid billing ($345K), followed by General Surgery ($291K) and Orthopedics ($278K). These three hold about 73% of all pending money.
-- Unpaid amounts are almost even across insurers (Allianz $0.43M, AXA $0.42M, Aviva $0.41M). This points to a collections-process problem inside departments rather than one slow insurer.
-- Patients paid **$1.09M out of pocket**. Orthopedics ($274K) and Cardiology ($270K) put the biggest cost burden on patients.
-
-**Operations and capacity**
-- **4,860 visits** from **4,833 unique patients**, so almost every patient visited once and follow-up activity is very low.
-- Outpatient visits make up about **51%** of volume, with inpatient and emergency at about 25% each.
-- **Orthopedics** has the highest admission rate (36.51%), more than double Cardiology (13.21%), even though Cardiology bills the most.
-- Average length of stay is **4.89 days** and varies little by diagnosis (Fracture 5.05 days, Migraine 4.68 days).
-- **Wednesday to Saturday** are the busiest days (750–760 visits each), about 24% more than Monday, Tuesday and Sunday (610–615). Staffing can be shifted towards the late week.
+**Operations**
+- Orthopedics (36.5%) and Neurology (30.7%) admit the most patients. Cardiology admits only 13.2%.
+- Patients stay about 4.9 days whatever their diagnosis.
+- Visits are spread evenly across the week.
+- Almost no patients come back: 4,860 visits came from 4,833 people, even though half of all visits had a follow-up date booked.
 
 **Patient experience**
-- Average satisfaction is **3.8 out of 5**.
-
----
+- The average satisfaction score is 3.8 out of 10. 65% of visits scored 4 or lower, and only 17% scored 8 or higher.
+- Cardiology (3.1) and General Surgery (3.0) have the lowest scores.
+- Scores rose from about 1.5 in early 2024 to about 5.5 from August 2024 onwards.
 
 ## Recommendations
-1. Focus collections follow-up on Cardiology, General Surgery and Orthopedics first; together they hold most of the unpaid $1.26M.
-2. Review the billing and claims workflow inside these departments, since the problem is not tied to one insurer.
-3. Plan bed capacity in Orthopedics and Neurology around their higher admission rates.
-4. Roster more staff from Wednesday to Saturday.
 
----
+1. Review the billing and claims process across the whole hospital, since no single department or insurer is causing the unpaid billing.
+2. Track the unpaid rate every month, and look at what worked in May and June 2024.
+3. Start chasing unpaid bills in Cardiology, General Surgery and Orthopedics, which hold about 73% of the money owed.
+4. Focus patient experience work on Cardiology and General Surgery.
+5. Plan bed capacity around Orthopedics and Neurology.
+6. Find out why booked follow-ups aren't turning into return visits.
+
+## Dashboard pages
+
+| Page | What it shows |
+|---|---|
+| Overview | Headline KPIs, unpaid % by department, satisfaction score spread, and monthly visits vs unpaid % |
+| Revenue & Collections | Paid vs unpaid by month, unpaid billing by department, insurer and service type, and out-of-pocket % by department and insurer |
+| Operations & Capacity | Emergency visits by month, admission rate by department, length of stay by diagnosis, and visits by day of week |
+| Patient Experience | Satisfaction score spread, high vs low satisfaction, and average score by department |
+
+Every page can be filtered by month, department, service type and insurance provider.
+
+![Revenue page](images/revenue.png)
+
+## How I built it
+
+### Data preparation (Power Query)
+- Converted the visit, follow-up, admission and discharge dates to proper date types.
+- Added an age group column (18–29, 30–44, 45–59, 60+).
+- Joined patients to the cities table so each patient shows a city name instead of an ID.
+- Replaced "N/A" in room type with "Not Admitted".
+
+The full steps are in the [`power-query`](power-query) folder.
+
+### Data issues I found
+While checking the data, I found a few problems and adjusted the report for them:
+- **Missing months:** October to December 2024 are mostly missing, and those visits appear to have been dated 1–4 January 2025 instead. I excluded October 2024 to January 2025 from the monthly trend charts so they don't show a false dip and spike.
+- **Partial month:** May 2025 only has part of the month, so it's excluded from the whole report.
+- **Emergency flag:** some outpatient visits are also flagged as emergencies, so the emergency figures depend on which field you use. The Operations page uses the emergency flag.
+- **Missing coverage:** 119 visits have no insurance coverage value.
+
+### Data model
+A star schema with `visits` as the fact table, linked to patients, departments, diagnoses, procedures, providers, insurance and a DAX date table.
+
+### Key measures
+I paired dollar totals with percentages. A department with more patients will always have more unpaid money, so percentages make the comparison fair.
+
+```dax
+Unpaid Amount = CALCULATE([Total Billed], visits[Payment Status] = "Pending")
+Unpaid %      = DIVIDE([Unpaid Amount], [Total Billed])
+
+Out of Pocket               = [Total Billed] - [Insurance Covered]
+Out of Pocket %             = DIVIDE([Out of Pocket], [Total Billed])
+Avg Out-of-Pocket per Visit = DIVIDE([Out of Pocket], [Total Visits])
+
+Admission Rate = DIVIDE([Admissions], [Total Visits])
+
+% Low Satisfaction  = DIVIDE(CALCULATE([Total Visits], visits[Patient Satisfaction Score] <= 4), [Total Visits])
+% High Satisfaction = DIVIDE(CALCULATE([Total Visits], visits[Patient Satisfaction Score] >= 8), [Total Visits])
+```
+
+All measures are in [`dax/measures.dax`](dax/measures.dax), and the date table is in [`dax/date-table.dax`](dax/date-table.dax).
 
 ## Tools
-Power BI Desktop · Power Query (M) · DAX
+Power BI Desktop, Power Query (M), DAX
 
 ## How to open
-1. Download `Healthcare_Data_Analysis.pbix`.
-2. Open it in [Power BI Desktop](https://www.microsoft.com/power-bi/desktop) (free).
-3. Use the buttons on the left to move between pages and the slicers to filter.
+1. Download [Healthcare_Data_Analysis.pbix](Healthcare_Data_Analysis.pbix).
+2. Open it in Power BI Desktop.
+3. Use the buttons on the left to switch pages and the slicers to filter.
 
 ## Author
-**Kavish Sharma**
+Kavish Sharma

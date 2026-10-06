@@ -1,20 +1,44 @@
-// Number of admitted visits (used in Admission Rate)
-Admissions = CALCULATE([Total Visits], visits[Is Admitted] = "Admitted")
+// Number of visits
+Total Visits = COUNTROWS(visits)
+
+// Number of different patients
+Unique Patients = DISTINCTCOUNT(visits[Patient ID])
+
+// Total amount billed
+Total Billed = SUM(visits[Total Cost])
+
+// Amount covered by insurance
+Insurance Covered = SUM(visits[Insurance Coverage])
 
 // Share of billing covered by insurance
 Coverage % = DIVIDE([Insurance Covered], [Total Billed])
 
+// Billing that has been paid
+Paid Amount = CALCULATE([Total Billed], visits[Payment Status] = "Paid")
+
+// Billing still unpaid
+Unpaid Amount = CALCULATE([Total Billed], visits[Payment Status] = "Pending")
+
+// Share of billing still unpaid
+Unpaid % = DIVIDE([Unpaid Amount], [Total Billed])
+
 // Amount paid by patients
 Out of Pocket = [Total Billed] - [Insurance Covered]
 
-// Billing still unpaid
-Pending Amount = CALCULATE([Total Billed], visits[Payment Status] = "Pending")
+// Share of billing paid by patients
+Out of Pocket % = DIVIDE([Out of Pocket], [Total Billed])
 
-// Share of billing still unpaid
-Pending $ % = DIVIDE([Pending Amount], [Total Billed])
+// Average amount a patient pays per visit
+Avg Out of Pocket per Visit = DIVIDE([Out of Pocket], [Total Visits])
+
+// Number of admitted visits (used in Admission Rate)
+Admissions = CALCULATE([Total Visits], visits[Is Admitted] = "Admitted")
 
 // Share of visits that were admitted
 Admission Rate = DIVIDE([Admissions], [Total Visits])
+
+// Average days in hospital
+Avg Length of Stay = AVERAGE(visits[Length of Stay])
 
 // Number of emergency visits
 Emergency Visits = CALCULATE([Total Visits], visits[Emergency Visit] = "Yes")
@@ -22,8 +46,14 @@ Emergency Visits = CALCULATE([Total Visits], visits[Emergency Visit] = "Yes")
 // Share of visits that were emergencies
 Emergency % = DIVIDE([Emergency Visits], [Total Visits])
 
-// Average days in hospital
-Avg Length of Stay = AVERAGE(visits[Length of Stay])
+// Share of visits with a follow-up date booked
+Follow-Up Rate = DIVIDE(CALCULATE([Total Visits], NOT ISBLANK(visits[Follow-Up Visit Date])), [Total Visits])
 
-// Average patient satisfaction score
+// Average patient satisfaction score (1 = worst, 10 = best)
 Avg Satisfaction = AVERAGE(visits[Patient Satisfaction Score])
+
+// Share of visits scoring 1 to 4
+% Low Satisfaction = DIVIDE(CALCULATE([Total Visits], visits[Patient Satisfaction Score] <= 4), [Total Visits])
+
+// Share of visits scoring 8 to 10
+% High Satisfaction = DIVIDE(CALCULATE([Total Visits], visits[Patient Satisfaction Score] >= 8), [Total Visits])
