@@ -1,11 +1,31 @@
+// ===== Visits =====
+
 // Number of visits
 Total Visits = COUNTROWS(visits)
 
 // Number of different patients
 Unique Patients = DISTINCTCOUNT(visits[Patient ID])
 
+// Share of visits with a follow-up date booked (used for the README finding on return visits)
+Follow-Up Rate = DIVIDE(CALCULATE([Total Visits], NOT ISBLANK(visits[Follow-Up Visit Date])), [Total Visits])
+
+
+// ===== Billing and collections =====
+
 // Total amount billed
 Total Billed = SUM(visits[Total Cost])
+
+// Billing that has been paid
+Paid Amount Value = CALCULATE([Total Billed], visits[Payment Status] = "Paid")
+
+// Billing still unpaid
+Unpaid Amount Value = CALCULATE([Total Billed], visits[Payment Status] = "Pending")
+
+// Share of billing still unpaid
+Unpaid % = DIVIDE([Unpaid Amount Value], [Total Billed])
+
+
+// ===== Insurance and patient costs =====
 
 // Amount covered by insurance
 Insurance Covered = SUM(visits[Insurance Coverage])
@@ -13,23 +33,17 @@ Insurance Covered = SUM(visits[Insurance Coverage])
 // Share of billing covered by insurance
 Coverage % = DIVIDE([Insurance Covered], [Total Billed])
 
-// Billing that has been paid
-Paid Amount = CALCULATE([Total Billed], visits[Payment Status] = "Paid")
-
-// Billing still unpaid
-Unpaid Amount = CALCULATE([Total Billed], visits[Payment Status] = "Pending")
-
-// Share of billing still unpaid
-Unpaid % = DIVIDE([Unpaid Amount], [Total Billed])
-
 // Amount paid by patients
-Out of Pocket = [Total Billed] - [Insurance Covered]
+Out of Pocket Value = [Total Billed] - [Insurance Covered]
 
 // Share of billing paid by patients
-Out of Pocket % = DIVIDE([Out of Pocket], [Total Billed])
+Out of Pocket % = DIVIDE([Out of Pocket Value], [Total Billed])
 
 // Average amount a patient pays per visit
-Avg Out of Pocket per Visit = DIVIDE([Out of Pocket], [Total Visits])
+Avg Out of Pocket per Visit = DIVIDE([Out of Pocket Value], [Total Visits])
+
+
+// ===== Operations =====
 
 // Number of admitted visits (used in Admission Rate)
 Admissions = CALCULATE([Total Visits], visits[Is Admitted] = "Admitted")
@@ -46,8 +60,8 @@ Emergency Visits = CALCULATE([Total Visits], visits[Emergency Visit] = "Yes")
 // Share of visits that were emergencies
 Emergency % = DIVIDE([Emergency Visits], [Total Visits])
 
-// Share of visits with a follow-up date booked
-Follow-Up Rate = DIVIDE(CALCULATE([Total Visits], NOT ISBLANK(visits[Follow-Up Visit Date])), [Total Visits])
+
+// ===== Patient experience =====
 
 // Average patient satisfaction score (1 = worst, 10 = best)
 Avg Satisfaction = AVERAGE(visits[Patient Satisfaction Score])
@@ -57,3 +71,24 @@ Avg Satisfaction = AVERAGE(visits[Patient Satisfaction Score])
 
 // Share of visits scoring 8 to 10
 % High Satisfaction = DIVIDE(CALCULATE([Total Visits], visits[Patient Satisfaction Score] >= 8), [Total Visits])
+
+
+// ===== KPI card display measures =====
+// These show money as text in millions (e.g. $2.00M) on the KPI cards.
+// Use them in cards only. Charts use the "Value" measures above.
+// They return blank when a filter leaves no data, so the card doesn't show "M" on its own.
+
+// Paid amount for the KPI card
+Paid Amount =
+VAR v = [Paid Amount Value]
+RETURN IF(ISBLANK(v), BLANK(), FORMAT(v / 1000000, "$0.00") & "M")
+
+// Unpaid amount for the KPI card
+Unpaid Amount =
+VAR v = [Unpaid Amount Value]
+RETURN IF(ISBLANK(v), BLANK(), FORMAT(v / 1000000, "$0.00") & "M")
+
+// Out-of-pocket amount for the KPI card
+Out of Pocket =
+VAR v = [Out of Pocket Value]
+RETURN IF(ISBLANK(v), BLANK(), FORMAT(v / 1000000, "$0.00") & "M")
